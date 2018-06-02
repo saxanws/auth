@@ -1,22 +1,49 @@
 import React, {Component} from 'react';
 import {Text} from 'react-native';
-import {Button, CardSection, Card, Input}from './common/index';
+import {Button, CardSection, Card, Input, Spinner}from './common/index';
 import firebase from 'firebase';
 
 class LoginForm extends Component {
-    state = {email:'', password: '', error: ''};
+    state = {email:'', password: '', error: '', loading: false};
 
     onButtonPress() {
         const {email, password} = this.state;
-        this.setState({error:''});
+        this.setState({error:'', loading: true});
         firebase.auth().signInWithEmailAndPassword(email, password)
+            .then(this.onLoginSuccess.bind(this))
             .catch(() => {
                 firebase.auth().createUserAndRetrieveDataWithEmailAndPassword(email, password)
-                    .catch(() => {
-                        this.setState({error: 'Authentication failed.'});
-                    });
+                    .then(this.onLoginSuccess.bind(this))
+                    .catch(this.onLoggingFail.bind(this));
             });
     }
+
+    onLoggingFail() {
+        this.setState({
+            error: 'Authentication failed.',
+            loading: false
+        });
+    }
+
+    onLoginSuccess() {
+        this.setState({
+            email: '',
+            password: '',
+            error: '',
+            loading: false
+        });
+    }
+
+    renderButton() {
+        if (this.state.loading) {
+            return <Spinner size = "small"/>
+        } else {
+            return(
+                <Button onPress = {this.onButtonPress.bind(this)}>Login</Button>
+            );
+        }
+    }
+
     render() {
         console.log(this.state.email);
         return (
@@ -35,6 +62,7 @@ class LoginForm extends Component {
                     <Input
                         value = {this.state.password}
                         label = {'Password'}
+                        placeholder = {'password'}
                         onChangeText = {password => this.setState({password})}
                         secureTextEntry
                     />
@@ -45,7 +73,7 @@ class LoginForm extends Component {
                 </Text>
 
                 <CardSection>
-                    <Button onPress = {this.onButtonPress.bind(this)}>Login</Button>
+                    {this.renderButton()}
                 </CardSection>
             </Card>
         );
